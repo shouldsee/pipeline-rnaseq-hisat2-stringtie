@@ -1,0 +1,1 @@
+singular_pipe==0.0.2
