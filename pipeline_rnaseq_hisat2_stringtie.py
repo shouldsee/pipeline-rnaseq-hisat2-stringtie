@@ -3,7 +3,7 @@ from spiper.types import job_result
 from spiper.types import Depend
 from spiper.runner import list_flatten_strict, job_from_func
 
-from spiper.shell import SingularityShellCommand
+from spiper.shell import LoggedSingularityCommandList, LoggedShellCommand
 from path import Path
 import spiper
 assert spiper.VERSION >= '0.0.5',spiper.VERSION
@@ -55,7 +55,7 @@ def job_trimmomatic(
 		'&>', 
 		File( self.output['log'])
 		]
-		res = SingularityShellCommand(CMD, _IMAGE, self.output['cmd'])
+		res = LoggedSingularityCommand(CMD, _IMAGE, self.output['cmd'])
 		return self
 		# return job_result( None, CMD, self.output)
 
@@ -79,9 +79,8 @@ def job_hisat2_index(
 	 '&>', 
 	 File(  self.output.log),
 	 ]
-	res = SingularityShellCommand(CMD, _IMAGE, self.output.cmd)
+	res = LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd)
 	return self
-
 
 
 def job_hisat2_align(
@@ -101,7 +100,7 @@ def job_hisat2_align(
 	):
 	# _out = get_output_files(self,prefix,_output)
 	results = []
-	CMD = [
+	cmd1 = CMD = [
 	 'hisat2',
 	 # hisat2_args,
 	 '-x', Prefix(INDEX_PREFIX),
@@ -109,39 +108,46 @@ def job_hisat2_align(
 	 '-2', File( FASTQ_FILE_2),
 	 # '-U', InputFile( FASTQ_FILE_1),
 	 # ['-2',InputFile( FASTQ_FILE_2) ] if FASTQ_FILE_2 else [],
-	 '-S', File( self.output.bam +'.sam' ),
-	 '--threads', str( THREADS_ ),
+	 '-S', '/dev/stdout',
+	 '--threads', str( THREADS_ //2),
 	 hisat2_args or [
 	 '--no-mixed',
 	 '--rna-strandness','RF',
 	 '--dta',
 	 '--fr'],
-	 '&>', File( self.output.log),
+	 '2>', File( self.output.log),
 	]
-	res = SingularityShellCommand(CMD, _IMAGE, self.output.cmd)
+	# res = LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd)
+
 	# results.append(job_result( None, CMD, self.output))
-
-	_ = '''
-	samtools view /home/feng/temp/187R/187R-S1-2018_06_27_14:02:08/809_S1.sam -b --threads 4 -o 809_S1.bam
-	'''
-	CMD = [	
-	'samtools','view',
-	File( self.output.bam+'.sam'),
-	'--threads',str(THREADS_),
-	'-o', 
-	File( self.output.bam+'.unsorted'),
+	# _ = '''
+	# samtools view /home/feng/temp/187R/187R-S1-2018_06_27_14:02:08/809_S1.sam -b --threads 4 -o 809_S1.bam
+	# '''
+	cmd2 = CMD = [	
+		'samtools','view','-bS','/dev/stdin',
+		'--threads',str(THREADS_ //2),
+		'-o', 
+		( self.output.bam+'.unsorted'),
 	]
-	res = SingularityShellCommand(CMD, _IMAGE_SAMTOOLS, self.output.cmd)
+	# res = LoggedSingularityCommand(CMD, _IMAGE_SAMTOOLS, self.output.cmd)
 
+	cmd3 = CMD = [
+		'samtools','sort', ( self.output.bam + '.unsorted'),
+		'--threads', str(THREADS_),
+		'-o', ( self.output.bam),
+	]
 
 	CMD = [
-	'samtools','sort',
-	File( self.output.bam + '.unsorted'),
-	'--threads', str(THREADS_),
-	'-o', 
-	File( self.output.bam),
+		# 'PIPE=$(mktemp -u);mkfifo $PIPE;exec 3<>$PIPE ;rm $PIPE;',
+		LoggedSingularityCommandList(cmd1, _IMAGE,),'|',
+		LoggedSingularityCommandList(cmd2, _IMAGE_SAMTOOLS),'&&',
+		LoggedSingularityCommandList(cmd3, _IMAGE_SAMTOOLS),
 	]
-	res = SingularityShellCommand(CMD, _IMAGE_SAMTOOLS, self.output.cmd)
+	res = LoggedShellCommand(CMD, self.output.cmd)
+	# (self.output.bam+'.sam').unlink_p()
+	# (self.output.bam+'.unsorted').unlink_p()
+
+	# res = LoggedSingularityCommand(CMD, _IMAGE_SAMTOOLS, self.output.cmd)
 	return self
 
 
@@ -168,7 +174,7 @@ def job_stringtie_count(self, prefix,
 	'-G', File(GTF_FILE),
 	'-A', File(self.output.count),
 	]
-	res = SingularityShellCommand(CMD, _IMAGE, self.output.cmd)
+	res = LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd)
 
 from spiper.types import Concat
 def job_picard_dedup(
@@ -186,8 +192,8 @@ def job_picard_dedup(
 		Concat('M=',File(self.output.log)),
 		'REMOVE_DUPLICATES=true',
 		]
-		res = SingularityShellCommand(CMD, _IMAGE, self.output.cmd_log)
-		res = SingularityShellCommand(['samtools','index',self.output.bam],
+		res = LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd_log)
+		res = LoggedSingularityCommand(['samtools','index',self.output.bam],
 			_IMAGE_SAMTOOLS, 
 			self.output.cmd_log,mode='a',
 			extra_files = [self.output.bam+'.bai'])
@@ -268,7 +274,7 @@ def get_fasta(self, prefix,
 
 
 from spiper.types import LoggedShellCommand
-LoggedSingularityCommand = SingularityShellCommand
+LoggedSingularityCommand = LoggedSingularityCommand
 def get_genepred(self,prefix,
 	_resp = spiper.types.HttpResponseContentHeader('https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/database/ncbiGene.txt.gz'),
 	_IMAGE = Depend('docker://quay.io/biocontainers/ucsc-genepredtogtf:377--h35c10e6_2'),
