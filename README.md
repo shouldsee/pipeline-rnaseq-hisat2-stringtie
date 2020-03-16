@@ -7,6 +7,7 @@ Comment: This is the default pair-end RNA-Seq pipeline with hisat2 during Feng's
 Author: Feng Geng
 Last Modified: 2020/03/16
 Example Usage: 
+
 	BIN=python3
 	PACKAGE=pipeline_rnaseq_hisat2_stringtie@https://github.com/shouldsee/pipeline-rnaseq-hisat2-stringtie/tarball/master
 	## install dependencies
