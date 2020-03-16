@@ -135,13 +135,16 @@ def job_hisat2_align(
 		'samtools','sort', ( self.output.bam + '.unsorted'),
 		'--threads', str( 1 ),
 		'-o', ( self.output.bam),
+		'-T', File(self.output.bam+'.sort_temp/').makedirs_p().check_writable(),
 	]
 
 	CMD = [
 		# 'PIPE=$(mktemp -u);mkfifo $PIPE;exec 3<>$PIPE ;rm $PIPE;',
 		LoggedSingularityCommandList(cmd1, _IMAGE,),'|',
 		LoggedSingularityCommandList(cmd2, _IMAGE_SAMTOOLS),'&&',
-		LoggedSingularityCommandList(cmd3, _IMAGE_SAMTOOLS, extra_files = [File(self.output.bam.dirname())]),
+		LoggedSingularityCommandList(cmd3, _IMAGE_SAMTOOLS),
+		 # extra_files = [File(self.output.bam.dirname())]),
+		# LoggedSingularityCommandList(cmd3, _IMAGE_SAMTOOLS, extra_files = [File(self.output.bam.dirname())]),
 		# LoggedSingularityCommandList([cmd3,'&&','df',File(self.output.bam.dirname())], _IMAGE_SAMTOOLS, 
 		# 	extra_files = [File(self.output.bam.dirname())]),
 	]
@@ -156,7 +159,7 @@ def job_hisat2_align(
 def job_stringtie_count(self, prefix,
 	BAM_FILE = File,
 	GTF_FILE = File,
-	THREADS_ = int,
+	THREADS_ = int,	
 	_IMAGE = Depend('docker://quay.io/biocontainers/stringtie:2.1.1--hc900ff6_0'),
 	_output = ['count','cmd']
 	):
