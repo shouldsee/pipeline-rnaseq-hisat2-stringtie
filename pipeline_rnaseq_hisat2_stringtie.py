@@ -73,6 +73,7 @@ def job_hisat2_index(
 
 	CMD = [
 	'hisat2-build',
+	'-p',str(THREADS_),
 	 File(  FASTA_FILE),
 	 Prefix(self.output.index_prefix),
 	 '&>', 
