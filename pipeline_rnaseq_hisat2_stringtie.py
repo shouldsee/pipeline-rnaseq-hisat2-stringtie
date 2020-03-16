@@ -1,17 +1,17 @@
-from spiper.types import InputFile,OutputFile,File,TempFile, Prefix, Default
+from spiper.types import File,TempFile, Prefix, Default
 from spiper.types import job_result
 from spiper.types import Depend
 from spiper.runner import list_flatten_strict, job_from_func
 
-from spiper.shell import LoggedSingularityCommandList, LoggedShellCommand
+from spiper.shell import LoggedSingularityCommandList, LoggedShellCommand, LoggedSingularityCommand
 from path import Path
 import spiper
 assert spiper.VERSION >= '0.0.5',spiper.VERSION
 
 def job_trimmomatic(
 	self, prefix,
-	FASTQ_FILE_1 = InputFile, 
-	FASTQ_FILE_2 = InputFile, 
+	FASTQ_FILE_1 = File, 
+	FASTQ_FILE_2 = File, 
 	THREADS_ = int,
 	_IMAGE = Depend('docker://quay.io/biocontainers/trimmomatic:0.35--6'),
 	_output = [
@@ -61,7 +61,7 @@ def job_trimmomatic(
 
 def job_hisat2_index(
 	self,prefix, 
-	FASTA_FILE = InputFile,
+	FASTA_FILE = File,
 	THREADS_  = int,
 	_IMAGE    = Depend("docker://quay.io/biocontainers/hisat2:2.1.0--py36hc9558a2_4"),
 	_output   = [
@@ -86,8 +86,8 @@ def job_hisat2_index(
 def job_hisat2_align(
 	self,prefix,
 	INDEX_PREFIX = Prefix,
-	FASTQ_FILE_1 = InputFile,
-	FASTQ_FILE_2 = InputFile,
+	FASTQ_FILE_1 = File,
+	FASTQ_FILE_2 = File,
 	hisat2_args = list,
 	THREADS_ = int,
 	_IMAGE   = Depend("docker://quay.io/biocontainers/hisat2:2.1.0--py36hc9558a2_4"),
@@ -106,8 +106,8 @@ def job_hisat2_align(
 	 '-x', Prefix(INDEX_PREFIX),
 	 '-1', File( FASTQ_FILE_1),
 	 '-2', File( FASTQ_FILE_2),
-	 # '-U', InputFile( FASTQ_FILE_1),
-	 # ['-2',InputFile( FASTQ_FILE_2) ] if FASTQ_FILE_2 else [],
+	 # '-U', File( FASTQ_FILE_1),
+	 # ['-2',File( FASTQ_FILE_2) ] if FASTQ_FILE_2 else [],
 	 '-S', '/dev/stdout',
 	 '--threads', str( THREADS_ //2),
 	 hisat2_args or [
