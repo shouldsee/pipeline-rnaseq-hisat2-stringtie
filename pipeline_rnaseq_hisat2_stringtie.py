@@ -8,6 +8,12 @@ from path import Path
 import spiper
 assert spiper.VERSION >= '0.0.5',spiper.VERSION
 
+from spiper.types import Concat
+from spiper.types import Flow
+from spiper.types import resolve_spiper
+from spiper.types import LoggedShellCommand
+
+
 def job_trimmomatic(
 	self, prefix,
 	FASTQ_FILE_1 = File, 
@@ -55,7 +61,7 @@ def job_trimmomatic(
 		'&>', 
 		File( self.output['log'])
 		]
-		res = LoggedSingularityCommand(CMD, _IMAGE, self.output['cmd'])
+		res = LoggedSingularityCommand(self.prefix_named, CMD, _IMAGE, self.output['cmd'])
 		return self
 		# return job_result( None, CMD, self.output)
 
@@ -79,7 +85,7 @@ def job_hisat2_index(
 	 '&>', 
 	 File(  self.output.log),
 	 ]
-	res = LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd)
+	res = LoggedSingularityCommand(self.prefix_named, CMD, _IMAGE, self.output.cmd)
 	return self
 
 
@@ -117,6 +123,10 @@ def job_hisat2_align(
 	 '--fr'],
 	 '2>', File( self.output.log),
 	]
+	'''
+	singularity --verbose --debug exec docker://python:2.7.17-alpine python -V
+	singularity shell docker://python:2.7.17-alpine python -V
+	'''
 	# res = LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd)
 
 	# results.append(job_result( None, CMD, self.output))
@@ -125,7 +135,7 @@ def job_hisat2_align(
 	# '''
 	cmd2 = CMD = [	
 		'samtools','view','-bS','/dev/stdin',
-		'--threads',str(THREADS_ //2),
+		'--threads',str( 1 ),
 		'-o', 
 		( self.output.bam+'.unsorted'),
 	]
@@ -133,16 +143,16 @@ def job_hisat2_align(
 
 	cmd3 = CMD = [
 		'samtools','sort', ( self.output.bam + '.unsorted'),
-		'--threads', str( 1 ),
+		'--threads', str( THREADS_ ),
 		'-o', ( self.output.bam),
 		'-T', File(self.output.bam+'.sort_temp/').makedirs_p().check_writable(),
 	]
 
 	CMD = [
 		# 'PIPE=$(mktemp -u);mkfifo $PIPE;exec 3<>$PIPE ;rm $PIPE;',
-		LoggedSingularityCommandList(cmd1, _IMAGE,),'|',
-		LoggedSingularityCommandList(cmd2, _IMAGE_SAMTOOLS),'&&',
-		LoggedSingularityCommandList(cmd3, _IMAGE_SAMTOOLS),
+		LoggedSingularityCommandList(self.prefix_named, cmd1, _IMAGE,),'|',
+		LoggedSingularityCommandList(self.prefix_named, cmd2, _IMAGE_SAMTOOLS),'&&',
+		LoggedSingularityCommandList(self.prefix_named, cmd3, _IMAGE_SAMTOOLS),
 		 # extra_files = [File(self.output.bam.dirname())]),
 		# LoggedSingularityCommandList(cmd3, _IMAGE_SAMTOOLS, extra_files = [File(self.output.bam.dirname())]),
 		# LoggedSingularityCommandList([cmd3,'&&','df',File(self.output.bam.dirname())], _IMAGE_SAMTOOLS, 
@@ -179,9 +189,8 @@ def job_stringtie_count(self, prefix,
 	'-G', File(GTF_FILE),
 	'-A', File(self.output.count),
 	]
-	res = LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd)
+	res = LoggedSingularityCommand(self.prefix_named, CMD, _IMAGE, self.output.cmd)
 
-from spiper.types import Concat
 def job_picard_dedup(
 	self,prefix,
 	bam_file = File,
@@ -195,17 +204,19 @@ def job_picard_dedup(
 		Concat('I=',File(bam_file)),
 		Concat('O=',File(self.output.bam)),
 		Concat('M=',File(self.output.log)),
+		# Concat('TMP_DIR=',File(self.output.bam+'.picard_temp').makedirs_p().check_writable()),
 		'REMOVE_DUPLICATES=true',
 		]
-		res = LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd_log)
-		res = LoggedSingularityCommand(['samtools','index',self.output.bam],
+		res = LoggedSingularityCommand(self.prefix_named, CMD, _IMAGE, self.output.cmd_log,)
+		res = LoggedSingularityCommand(
+			self.prefix_named,
+			# prefix,
+			['samtools','index',self.output.bam],
 			_IMAGE_SAMTOOLS, 
 			self.output.cmd_log,mode='a',
 			extra_files = [self.output.bam+'.bai'])
 
 
-
-from spiper.types import Flow
 @Flow
 def workflow(self, prefix, 
 
@@ -259,7 +270,6 @@ def workflow(self, prefix,
 		)
 	return self
 
-from spiper.types import resolve_spiper
 def backup(self,prefix):
 	key = 'subflow..random_seq..output..seq'
 	self.runner(copy_file, prefix+'.' + key, resolve_spiper(flow,key))
@@ -278,8 +288,7 @@ def get_fasta(self, prefix,
 	d.rmtree_p()
 
 
-from spiper.types import LoggedShellCommand
-# LoggedSingularityCommand = LoggedSingularityCommand
+
 def get_genepred(self,prefix,
 	_resp = spiper.types.HttpResponseContentHeader('https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/database/ncbiGene.txt.gz'),
 	_IMAGE = Depend('docker://quay.io/biocontainers/ucsc-genepredtogtf:377--h35c10e6_2'),
@@ -291,7 +300,7 @@ def get_genepred(self,prefix,
 
 	LoggedShellCommand(CMD,self.output.cmd,mode='w')
 	CMD = ['genePredToGtf','file',self.output.genepred, self.output.gtf]
-	LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd,mode='a')
+	LoggedSingularityCommand(self.prefix_named, CMD, _IMAGE, self.output.cmd,mode='a')
 
 @Flow
 def test_job(self,prefix, _THREADS= 2,_output=[]):
