@@ -36,8 +36,8 @@ def job_trimmomatic(
 		# _out = get_output_files(self, prefix, _output)
 
 		CMD = [
-		'trimmomatic','PE',
-		'-threads', str(THREADS_), 
+		'trimmomatic',
+		'PE','-threads', str(THREADS_//2), 
 		'-phred33',
 		File( FASTQ_FILE_1 ),
 		File( FASTQ_FILE_2 ),
@@ -109,7 +109,7 @@ def job_hisat2_align(
 	 # '-U', File( FASTQ_FILE_1),
 	 # ['-2',File( FASTQ_FILE_2) ] if FASTQ_FILE_2 else [],
 	 '-S', '/dev/stdout',
-	 '--threads', str( THREADS_ //2),
+	 '--threads', str( max(1, THREADS_-1) ),
 	 hisat2_args or [
 	 '--no-mixed',
 	 '--rna-strandness','RF',
@@ -133,7 +133,7 @@ def job_hisat2_align(
 
 	cmd3 = CMD = [
 		'samtools','sort', ( self.output.bam + '.unsorted'),
-		'--threads', str(THREADS_),
+		'--threads', str( 1 ),
 		'-o', ( self.output.bam),
 	]
 
@@ -141,7 +141,9 @@ def job_hisat2_align(
 		# 'PIPE=$(mktemp -u);mkfifo $PIPE;exec 3<>$PIPE ;rm $PIPE;',
 		LoggedSingularityCommandList(cmd1, _IMAGE,),'|',
 		LoggedSingularityCommandList(cmd2, _IMAGE_SAMTOOLS),'&&',
-		LoggedSingularityCommandList(cmd3, _IMAGE_SAMTOOLS),
+		LoggedSingularityCommandList(cmd3, _IMAGE_SAMTOOLS, extra_files = [File(self.output.bam.dirname())]),
+		# LoggedSingularityCommandList([cmd3,'&&','df',File(self.output.bam.dirname())], _IMAGE_SAMTOOLS, 
+		# 	extra_files = [File(self.output.bam.dirname())]),
 	]
 	res = LoggedShellCommand(CMD, self.output.cmd)
 	# (self.output.bam+'.sam').unlink_p()
