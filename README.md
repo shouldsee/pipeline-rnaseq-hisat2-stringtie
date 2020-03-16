@@ -10,12 +10,15 @@ Example Usage:
 
 	BIN=python3
 	PACKAGE=pipeline_rnaseq_hisat2_stringtie@https://github.com/shouldsee/pipeline-rnaseq-hisat2-stringtie/tarball/master
+
 	## install dependencies
 	$BIN -m pip install spiper@https://github.com/shouldsee/spiper/tarball/master --user --upgrade
 	curl -sL https://raw.githubusercontent.com/shouldsee/spiper/master/scripts/install_singular.sh | bash -s $HOME/.local
+
 	## test example runs
 	$BIN -m spiper get_changed_files $PACKAGE TOPLEVEL:test_job _temp_build/root --plain
 	$BIN -m spiper run               $PACKAGE TOPLEVEL:test_job _temp_build/root
+
 	$BIN -m spiper run $PACKAGE TOPLEVEL:workflow \
 		$HOME/run_temp/0306.201RS6/root \
 		$HOME/_hisat2_cache/Bd21_v3-1 \
