@@ -195,17 +195,15 @@ def job_picard_dedup(
 
 from spiper.types import Flow
 @Flow
-def workflow(self, 
-	prefix, 
+def workflow(self, prefix, 
+
 	hisat2_cache_dir = File,
 	genome_fasta = File, 
 	genome_fasta_acc = str,
-
-	gtf_file = File,
+	genome_gtf_file = File,
 
 	fastq1 = File,
 	fastq2 = File,
-
 
 	THREADS_ = int,
 	_output=[]
@@ -245,7 +243,7 @@ def workflow(self,
 		job_stringtie_count,
 		prefix,
 		self.subflow['job_picard_dedup'].output.bam,
-		gtf_file,
+		genome_gtf_file,
 		THREADS_,
 		)
 	return self
@@ -267,7 +265,7 @@ def get_fasta(self, prefix,
 		assert len(res)==1
 		res[0].move(self.output.fasta)
 	d.rmtree_p()
-	# return self
+
 
 from spiper.types import LoggedShellCommand
 LoggedSingularityCommand = SingularityShellCommand
@@ -285,7 +283,7 @@ def get_genepred(self,prefix,
 	LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd,mode='a')
 
 @Flow
-def main(self,prefix,_output=[]):
+def test_job(self,prefix, _THREADS= 2,_output=[]):
 	curr = self.runner(get_fasta, prefix)
 	curr = self.runner(get_genepred, prefix)
 	curr = self.runner(workflow, 
@@ -296,30 +294,15 @@ def main(self,prefix,_output=[]):
 		self.subflow['get_genepred'].output.gtf,
 		'./test_data/test_R1_.fastq',
 		'./test_data/test_R2_.fastq',
-		2,		
+		_THREADS
 		)
 	return self
 
 if __name__ == '__main__':
 	from pprint import pprint
 	from spiper.runner import force_run,cache_run
-	data = {}
-	data['fasta'] = res = cache_run(get_fasta,'~/.temp/0305',)
-	# pprint(res)
-	# assert 0
-	data['gtf']   = cache_run(get_genepred,'~/.temp/0305',)
-	data['flow1'] = cache_run(workflow,
-		'~/.temp/0305.sample1',
-		'~/.temp/hisat2/', 
-		data['fasta'].output.fasta,
-		'wuhan-ncov19',
-		data['gtf'].output.gtf,
-		'./test_data/test_R1_.fastq',
-		'./test_data/test_R2_.fastq',
-		2,
-		)
-
-
+	cache_run(test_job,'_temp_build/root')
+	'python3 -m spiper run     $PACKAGE TOPLEVEL:test_job _temp_build/root'
 
 ######
 if 0:
