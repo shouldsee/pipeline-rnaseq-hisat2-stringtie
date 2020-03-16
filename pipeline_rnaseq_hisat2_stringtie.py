@@ -1,11 +1,12 @@
-from singular_pipe.types import InputFile,OutputFile,File,TempFile, Prefix, Default
-from singular_pipe.types import job_result
-from singular_pipe.types import Depend
-from singular_pipe.runner import list_flatten_strict, job_from_func, get_output_files
-from singular_pipe.shell import SingularityShellCommand
-from path import Path
-import singular_pipe
+from spiper.types import InputFile,OutputFile,File,TempFile, Prefix, Default
+from spiper.types import job_result
+from spiper.types import Depend
+from spiper.runner import list_flatten_strict, job_from_func
 
+from spiper.shell import SingularityShellCommand
+from path import Path
+import spiper
+assert spiper.VERSION >= '0.0.5',spiper.VERSION
 
 def job_trimmomatic(
 	self, prefix,
@@ -40,10 +41,10 @@ def job_trimmomatic(
 		'-phred33',
 		File( FASTQ_FILE_1 ),
 		File( FASTQ_FILE_2 ),
-		File( self.output.fastq1 ),
-		File( self.output.fastq1 + '.fail'),
-		File( self.output.fastq2 ),
-		File( self.output.fastq2 + '.fail'),
+		File( self.output['fastq1'] ),
+		File( self.output['fastq1'] + '.fail'),
+		File( self.output['fastq2'] ),
+		File( self.output['fastq2'] + '.fail'),
 		'ILLUMINACLIP:'
 		'/usr/local/share/trimmomatic-0.35-6/adapters/TruSeq3-PE-2.fa'
 		':6:30:10',
@@ -52,18 +53,11 @@ def job_trimmomatic(
 		'MINLEN:36',
 		'SLIDINGWINDOW:4:15',
 		'&>', 
-		File( self.output.log)
+		File( self.output['log'])
 		]
-		res = SingularityShellCommand(CMD, _IMAGE, self.output.cmd)
+		res = SingularityShellCommand(CMD, _IMAGE, self.output['cmd'])
 		return self
 		# return job_result( None, CMD, self.output)
-
-# def genepred_to_gtf():
-# 	CMD = ['','cut','-f','2-']
-# 	CMD = list_flatten_strict(CMD)
-# 	res = SingularityShellCommand(CMD, _IMAGE)
-# 	return job_result(OUTDIR, CMD, _out)
-# 	# cut -f 2- temp.genepred | genePredToGtf file stdin out.gtf 
 
 def job_hisat2_index(
 	self,prefix, 
@@ -94,6 +88,7 @@ def job_hisat2_align(
 	INDEX_PREFIX = Prefix,
 	FASTQ_FILE_1 = InputFile,
 	FASTQ_FILE_2 = InputFile,
+	hisat2_args = list,
 	THREADS_ = int,
 	_IMAGE   = Depend("docker://quay.io/biocontainers/hisat2:2.1.0--py36hc9558a2_4"),
 	_IMAGE_SAMTOOLS = Depend("docker://quay.io/biocontainers/samtools:1.10--h9402c20_2"),
@@ -106,18 +101,20 @@ def job_hisat2_align(
 	# _out = get_output_files(self,prefix,_output)
 	results = []
 	CMD = [
-	 'hisat2','-x',
-	 Prefix(INDEX_PREFIX),
+	 'hisat2',
+	 # hisat2_args,
+	 '-x', Prefix(INDEX_PREFIX),
 	 '-1', File( FASTQ_FILE_1),
 	 '-2', File( FASTQ_FILE_2),
 	 # '-U', InputFile( FASTQ_FILE_1),
 	 # ['-2',InputFile( FASTQ_FILE_2) ] if FASTQ_FILE_2 else [],
 	 '-S', File( self.output.bam +'.sam' ),
 	 '--threads', str( THREADS_ ),
+	 hisat2_args or [
 	 '--no-mixed',
 	 '--rna-strandness','RF',
 	 '--dta',
-	 '--fr',
+	 '--fr'],
 	 '&>', File( self.output.log),
 	]
 	res = SingularityShellCommand(CMD, _IMAGE, self.output.cmd)
@@ -172,10 +169,34 @@ def job_stringtie_count(self, prefix,
 	]
 	res = SingularityShellCommand(CMD, _IMAGE, self.output.cmd)
 
+from spiper.types import Concat
+def job_picard_dedup(
+	self,prefix,
+	bam_file = File,
+	THREADS_ = int,
+	_IMAGE = Depend('docker://quay.io/biocontainers/picard:2.21.9--0'),
+	_IMAGE_SAMTOOLS = Depend("docker://quay.io/biocontainers/samtools:1.10--h9402c20_2"),
+	_output= ['bam','log','cmd_log'],):
+		CMD = [
+		'picard',
+		'MarkDuplicates',
+		Concat('I=',File(bam_file)),
+		Concat('O=',File(self.output.bam)),
+		Concat('M=',File(self.output.log)),
+		'REMOVE_DUPLICATES=true',
+		]
+		res = SingularityShellCommand(CMD, _IMAGE, self.output.cmd_log)
+		res = SingularityShellCommand(['samtools','index',self.output.bam],
+			_IMAGE_SAMTOOLS, 
+			self.output.cmd_log,mode='a',
+			extra_files = [self.output.bam+'.bai'])
 
-from singular_pipe.types import Flow
+
+
+from spiper.types import Flow
 @Flow
-def workflow(self, prefix, 
+def workflow(self, 
+	prefix, 
 	hisat2_cache_dir = File,
 	genome_fasta = File, 
 	genome_fasta_acc = str,
@@ -189,53 +210,69 @@ def workflow(self, prefix,
 	THREADS_ = int,
 	_output=[]
 	):
-	self.data = {}
-	self.data['index'] = self.runner(job_hisat2_index, 
+	# self.data = {}
+	# self.data['index'] = 
+	curr = self.runner(
+		job_hisat2_index, 
 		hisat2_cache_dir/genome_fasta_acc,
 		genome_fasta,
 		THREADS_,
 		)
-	self.data['trimmed'] = self.runner(
+	# self.data['trimmed'] = 
+	curr = self.runner(
 		job_trimmomatic,
 		prefix,
 		fastq1,
 		fastq2,
 		THREADS_,
 		)
-	self.data['aligned'] = self.runner(
+	curr = self.runner(
 		job_hisat2_align,
 		prefix,
-		self.data['index'].output.index_prefix,
-		self.data['trimmed'].output.fastq1,
-		self.data['trimmed'].output.fastq2,
+		self.subflow['job_hisat2_index'].output.index_prefix,
+		self.subflow['job_trimmomatic'].output.fastq1,
+		self.subflow['job_trimmomatic'].output.fastq2,
+		[],
 		THREADS_,
 		)
-	self.data['count'] = self.runner(
+	self.runner(
+		job_picard_dedup,
+		prefix,
+		self.subflow['job_hisat2_align'].output.bam,
+		THREADS_,
+		)
+	self.runner(
 		job_stringtie_count,
 		prefix,
-		self.data['aligned'].output.bam,
+		self.subflow['job_picard_dedup'].output.bam,
 		gtf_file,
 		THREADS_,
 		)
-	return self.data
+	return self
+
+from spiper.types import resolve_spiper
+def backup(self,prefix):
+	key = 'subflow..random_seq..output..seq'
+	self.runner(copy_file, prefix+'.' + key, resolve_spiper(flow,key))
 
 def get_fasta(self, prefix,
 	_depends = [Depend('curl'),Depend('gzip')],
-	_resp = singular_pipe.types.HttpResponseContentHeader('https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/bigZips/chromFa.tar.gz'),
+	_resp = spiper.types.HttpResponseContentHeader('https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/bigZips/chromFa.tar.gz'),
 	_output = ['fasta','cmd']):
 	with (self.prefix_named/'_temp').makedirs_p() as d:
 		CMD = ['curl','-LC0',_resp.url,
 		'|','tar','-xvzf-',]
-		stdout = singular_pipe.types.LoggedShellCommand(CMD)
+		stdout = spiper.types.LoggedShellCommand(CMD)
 		res = d.glob('*.fa')
 		assert len(res)==1
 		res[0].move(self.output.fasta)
 	d.rmtree_p()
+	# return self
 
-from singular_pipe.types import LoggedShellCommand
+from spiper.types import LoggedShellCommand
 LoggedSingularityCommand = SingularityShellCommand
 def get_genepred(self,prefix,
-	_resp = singular_pipe.types.HttpResponseContentHeader('https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/database/ncbiGene.txt.gz'),
+	_resp = spiper.types.HttpResponseContentHeader('https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/database/ncbiGene.txt.gz'),
 	_IMAGE = Depend('docker://quay.io/biocontainers/ucsc-genepredtogtf:377--h35c10e6_2'),
 	_output = ['genepred','gtf','cmd'],
 	):
@@ -247,12 +284,29 @@ def get_genepred(self,prefix,
 	CMD = ['genePredToGtf','file',self.output.genepred, self.output.gtf]
 	LoggedSingularityCommand(CMD, _IMAGE, self.output.cmd,mode='a')
 
-	# return 
+@Flow
+def main(self,prefix,_output=[]):
+	curr = self.runner(get_fasta, prefix)
+	curr = self.runner(get_genepred, prefix)
+	curr = self.runner(workflow, 
+		prefix+'.sample1', 
+		prefix+'.hisat2', 
+		self.subflow['get_fasta'].output.fasta,
+		'wuhan-ncov19',
+		self.subflow['get_genepred'].output.gtf,
+		'./test_data/test_R1_.fastq',
+		'./test_data/test_R2_.fastq',
+		2,		
+		)
+	return self
 
 if __name__ == '__main__':
-	from singular_pipe.runner import force_run,cache_run
+	from pprint import pprint
+	from spiper.runner import force_run,cache_run
 	data = {}
-	data['fasta'] = cache_run(get_fasta,'~/.temp/0305',)
+	data['fasta'] = res = cache_run(get_fasta,'~/.temp/0305',)
+	# pprint(res)
+	# assert 0
 	data['gtf']   = cache_run(get_genepred,'~/.temp/0305',)
 	data['flow1'] = cache_run(workflow,
 		'~/.temp/0305.sample1',
@@ -260,8 +314,8 @@ if __name__ == '__main__':
 		data['fasta'].output.fasta,
 		'wuhan-ncov19',
 		data['gtf'].output.gtf,
-		'./tests/data/test_R1_.fastq',
-		'./tests/data/test_R2_.fastq',
+		'./test_data/test_R1_.fastq',
+		'./test_data/test_R2_.fastq',
 		2,
 		)
 
@@ -270,33 +324,6 @@ if __name__ == '__main__':
 ######
 if 0:
 	################################### TBC afterwards ############################
-	@job_from_func
-	def get_picard_dedup(
-		self = Default,
-		prefix = Prefix,
-		BAM_FILE = InputFile,
-		_IMAGE = 'docker://quay.io/biocontainers/picard:2.21.9--0',
-		_output = ['bam'],
-		):
-		_ ='''
-		java -XX:ParallelGCThreads=4 -jar /home/feng/envs/pipeline_Bd/jar/MarkDuplicates.jar 
-		I=/home/feng/temp/187R/187R-S1-2018_06_27_14:02:08/809_S1.sorted.bam O=809_S1_dedup.bam M=809_S1.dupstat.log REMOVE_DUPLICATES=true
-		'''
-		_out = _picard_dedup_output(
-			BAM_FILE = OutputFile( rstrip( InputFile(BAM_FILE),'.bam') +'.dedup.bam'),
-			)
-		PROG = 'singularity exec docker://quay.io/biocontainers/picard:2.21.9--0 picard'.split()
-		CMD = [
-		'picard',
-		'MarkDuplicates',
-		# 'java','-XX:ParallelGCThreads=%s'%THREADS,
-		'I=%s'% InputFile(  BAM_FILE ),
-		'O=%s'% OutputFile(_out.BAM_FILE ),
-		'M=%s'% OutputFile(_out.BAM_FILE +'.log') ,
-		]
-		CMD = list_flatten_strict(CMD)
-		res = SingularityShellCommand(CMD, _IMAGE)
-		return job_result( _out.BAM_FILE, CMD, self.output)
 
 
 
