@@ -197,9 +197,8 @@ from spiper.types import Flow
 @Flow
 def workflow(self, prefix, 
 
-	hisat2_cache_dir = File,
+	hisat2_cache_prefix = File,
 	genome_fasta = File, 
-	genome_fasta_acc = str,
 	genome_gtf_file = File,
 
 	fastq1 = File,
@@ -212,7 +211,7 @@ def workflow(self, prefix,
 	# self.data['index'] = 
 	curr = self.runner(
 		job_hisat2_index, 
-		hisat2_cache_dir/genome_fasta_acc,
+		hisat2_cache_prefix,
 		genome_fasta,
 		THREADS_,
 		)
@@ -288,9 +287,8 @@ def test_job(self,prefix, _THREADS= 2,_output=[]):
 	curr = self.runner(get_genepred, prefix)
 	curr = self.runner(workflow, 
 		prefix+'.sample1', 
-		prefix+'.hisat2', 
+		prefix+'.hisat2/wuhan-ncov19' , 
 		self.subflow['get_fasta'].output.fasta,
-		'wuhan-ncov19',
 		self.subflow['get_genepred'].output.gtf,
 		'./test_data/test_R1_.fastq',
 		'./test_data/test_R2_.fastq',
