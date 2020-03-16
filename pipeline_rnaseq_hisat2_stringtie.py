@@ -274,7 +274,7 @@ def get_fasta(self, prefix,
 
 
 from spiper.types import LoggedShellCommand
-LoggedSingularityCommand = LoggedSingularityCommand
+# LoggedSingularityCommand = LoggedSingularityCommand
 def get_genepred(self,prefix,
 	_resp = spiper.types.HttpResponseContentHeader('https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/database/ncbiGene.txt.gz'),
 	_IMAGE = Depend('docker://quay.io/biocontainers/ucsc-genepredtogtf:377--h35c10e6_2'),
