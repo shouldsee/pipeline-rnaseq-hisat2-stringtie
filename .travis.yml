@@ -17,9 +17,9 @@ cache:
 before_install:
   - sudo apt-get update
   - sudo apt install -y graphviz
-  - curl -sL https://raw.githubusercontent.com/shouldsee/spiper/be4246b/scripts/install_singular.sh | bash -s $HOME/.local
+  - curl -sL https://raw.githubusercontent.com/shouldsee/spiper/master/scripts/install_singular.sh | bash -s $HOME/.local
   - singularity --verbose --debug exec docker://python:2.7.17-alpine python -V
-  - pip install spiper@https://github.com/shouldsee/spiper/tarball/0.0.6
+  - pip install spiper@https://github.com/shouldsee/spiper/tarball/0.0.8
 install:
   - echo pass
 script:

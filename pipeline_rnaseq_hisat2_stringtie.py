@@ -270,9 +270,25 @@ def workflow(self, prefix,
 		)
 	return self
 
+from spiper.types import Caller, DirtyKey, rgetattr
+import shutil
+def LinkEvent(self, 
+	prefix, input=File, 
+	_single_file = 1, ### A single file node only tracks the file at self.prefix
+	_output=[], 
+	):
+	'''
+	#### One can also use directly move the output file, but this would break the upstream integrity 
+	#### and is hence not recommended
+	'''
+	# os.link()
+	shutil.copy2(input, self.prefix+'.temp')
+	shutil.move(self.prefix +'.temp', self.prefix)
+
 def backup(self,prefix):
 	key = 'subflow..random_seq..output..seq'
-	self.runner(copy_file, prefix+'.' + key, resolve_spiper(flow,key))
+	# self.runner(LinkEvent, prefix)
+	self.runner(LinkEvent, prefix+'.' + key, resolve_spiper(flow,key))
 
 def get_fasta(self, prefix,
 	_depends = [Depend('curl'),Depend('gzip')],
