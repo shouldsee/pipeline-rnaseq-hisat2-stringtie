@@ -1,8 +1,8 @@
 __doc__ = '''
 Comment: This is the default pair-end RNA-Seq pipeline with hisat2 during Feng's time at SLCU.
 Author: Feng Geng
-Last Modified: 2020/03/16
-Version: 0.0.1
+Last Modified: 2020/03/18
+Version: 0.0.2
 Example Usage: 
 
 	BIN=python3
@@ -275,6 +275,16 @@ def job_picard_dedup(
 			self.output.cmd_log,mode='a',
 			extra_files = [self.output.bam+'.bai'])
 
+def job_bam2bw(self,prefix, 
+	bam_file= File,
+	THREADS_ = int,
+	_image = Depend('docker://quay.io/wtsicgp/cgpbigwig:1.1.0'),
+	_output=['bw','cmd'],
+	):
+	assert (bam_file+'.bai').exists()
+	CMD = ['bam2bw','-i',bam_file, '-o', self.output.bw]
+	LoggedSingularityCommand(self.prefix_named, CMD, _image, self.output.cmd,extra_files = [bam_file+'.bai'])
+
 
 @Flow
 def workflow(self, prefix, 
@@ -320,6 +330,13 @@ def workflow(self, prefix,
 		self.subflow['job_hisat2_align'].output.bam,
 		THREADS_,
 		)
+	self.config_runner(tag='picard_dedup_bam')(
+		job_bam2bw,
+		prefix,
+		self.subflow['job_picard_dedup'].output.bam,
+		1,
+		)
+
 	self.runner(
 		job_stringtie_count,
 		prefix,
@@ -327,7 +344,9 @@ def workflow(self, prefix,
 		genome_gtf_file,
 		THREADS_,
 		)
+
 	return self
+
 
 from spiper.types import Caller, DirtyKey, rgetattr
 import shutil
