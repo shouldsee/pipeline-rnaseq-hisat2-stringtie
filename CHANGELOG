@@ -1,0 +1,3 @@
+# 0.0.3
+- workflow() now copy source 
+- require "spiper>=0.1.1"

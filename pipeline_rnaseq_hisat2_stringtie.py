@@ -2,7 +2,7 @@ __doc__ = '''
 Comment: This is the default pair-end RNA-Seq pipeline with hisat2 during Feng's time at SLCU.
 Author: Feng Geng
 Last Modified: 2020/03/18
-Version: 0.0.2
+Version: 0.0.3
 Example Usage: 
 
 	BIN=python3
@@ -13,10 +13,13 @@ Example Usage:
 	curl -sL https://raw.githubusercontent.com/shouldsee/spiper/master/scripts/install_singular.sh | bash -s $HOME/.local
 
 	## test example runs
+	## (test_run)
+	$BIN -m spiper get_all_files $PACKAGE TOPLEVEL:test_job _temp_build/root
 	$BIN -m spiper get_changed_files $PACKAGE TOPLEVEL:test_job _temp_build/root --plain
+	$BIN -m spiper get_all_deps      $PACKAGE TOPLEVEL:test_job _temp_build/root
 	$BIN -m spiper run               $PACKAGE TOPLEVEL:test_job _temp_build/root
 
-
+	## (production_run)
 	time $BIN -m spiper run $PACKAGE TOPLEVEL:workflow \
 		$HOME/run_temp/0306.201RS6/root \
 		$HOME/_hisat2_cache/Bd21_v3-1 \
@@ -29,31 +32,70 @@ Example Usage:
 	ls $HOME/run_temp/0306.201RS6/ -lhtr
 
 Example output:
+	ls: (production_run)
+		total 15G 
+		drwxrwxr-x  4 feng feng 4.0K Mar 16 15:51 root.job_trimmomatic.singularity_temp
+		-rw-rw-r--  1 feng feng 4.0G Mar 16 15:56 root.job_trimmomatic.fastq1
+		-rw-rw-r--  1 feng feng 3.9G Mar 16 15:56 root.job_trimmomatic.fastq2
+		-rw-rw-r--  1 feng feng 5.7M Mar 16 15:56 root.job_trimmomatic.fastq1.fail
+		-rw-rw-r--  1 feng feng 1.1M Mar 16 15:56 root.job_trimmomatic.fastq2.fail
+		-rw-rw-r--  1 feng feng 1.7K Mar 16 15:56 root.job_trimmomatic.log
+		-rw-rw-r--  1 feng feng 5.6K Mar 16 15:56 root.job_trimmomatic.cmd
+		drwxrwxr-x  4 feng feng 4.0K Mar 16 15:56 root.job_hisat2_align.singularity_temp
+		-rw-rw-r--  1 feng feng 4.4M Mar 16 16:06 root.job_hisat2_align.log
+		-rw-rw-r--  1 feng feng 2.8G Mar 16 16:06 root.job_hisat2_align.bam.unsorted
+		-rw-rw-r--  1 feng feng 376K Mar 16 16:08 root.job_hisat2_align.log.2
+		-rw-rw-r--  1 feng feng 1.9G Mar 16 16:09 root.job_hisat2_align.bam
+		drwxrwxr-x  2 feng feng 4.0K Mar 16 16:09 root.job_hisat2_align.bam.sort_temp
+		-rw-rw-r--  1 feng feng  11K Mar 16 16:09 root.job_hisat2_align.cmd
+		drwxrwxr-x  4 feng feng 4.0K Mar 16 16:09 root.job_picard_dedup.singularity_temp
+		-rw-rw-r--  1 feng feng 1.6G Mar 16 16:26 root.job_picard_dedup.bam
+		-rw-rw-r--  1 feng feng 6.5K Mar 16 16:26 root.job_picard_dedup.log
+		-rw-rw-r--  1 feng feng 383K Mar 16 16:26 root.job_picard_dedup.bam.bai
+		-rw-rw-r--  1 feng feng  25K Mar 16 16:26 root.job_picard_dedup.cmd_log
+		drwxrwxr-x  4 feng feng 4.0K Mar 16 16:26 root.job_stringtie_count.singularity_temp
+		-rw-rw-r--  1 feng feng 1.8M Mar 16 16:33 root.job_stringtie_count.count
+		-rw-rw-r--  1 feng feng  17M Mar 16 16:33 root.job_stringtie_count.cmd
+		drwxrwxr-x 37 feng feng 4.0K Mar 16 16:33 _spiper
 
-	total 15G
-	drwxrwxr-x  4 feng feng 4.0K Mar 16 15:51 root.job_trimmomatic.singularity_temp
-	-rw-rw-r--  1 feng feng 4.0G Mar 16 15:56 root.job_trimmomatic.fastq1
-	-rw-rw-r--  1 feng feng 3.9G Mar 16 15:56 root.job_trimmomatic.fastq2
-	-rw-rw-r--  1 feng feng 5.7M Mar 16 15:56 root.job_trimmomatic.fastq1.fail
-	-rw-rw-r--  1 feng feng 1.1M Mar 16 15:56 root.job_trimmomatic.fastq2.fail
-	-rw-rw-r--  1 feng feng 1.7K Mar 16 15:56 root.job_trimmomatic.log
-	-rw-rw-r--  1 feng feng 5.6K Mar 16 15:56 root.job_trimmomatic.cmd
-	drwxrwxr-x  4 feng feng 4.0K Mar 16 15:56 root.job_hisat2_align.singularity_temp
-	-rw-rw-r--  1 feng feng 4.4M Mar 16 16:06 root.job_hisat2_align.log
-	-rw-rw-r--  1 feng feng 2.8G Mar 16 16:06 root.job_hisat2_align.bam.unsorted
-	-rw-rw-r--  1 feng feng 376K Mar 16 16:08 root.job_hisat2_align.log.2
-	-rw-rw-r--  1 feng feng 1.9G Mar 16 16:09 root.job_hisat2_align.bam
-	drwxrwxr-x  2 feng feng 4.0K Mar 16 16:09 root.job_hisat2_align.bam.sort_temp
-	-rw-rw-r--  1 feng feng  11K Mar 16 16:09 root.job_hisat2_align.cmd
-	drwxrwxr-x  4 feng feng 4.0K Mar 16 16:09 root.job_picard_dedup.singularity_temp
-	-rw-rw-r--  1 feng feng 1.6G Mar 16 16:26 root.job_picard_dedup.bam
-	-rw-rw-r--  1 feng feng 6.5K Mar 16 16:26 root.job_picard_dedup.log
-	-rw-rw-r--  1 feng feng 383K Mar 16 16:26 root.job_picard_dedup.bam.bai
-	-rw-rw-r--  1 feng feng  25K Mar 16 16:26 root.job_picard_dedup.cmd_log
-	drwxrwxr-x  4 feng feng 4.0K Mar 16 16:26 root.job_stringtie_count.singularity_temp
-	-rw-rw-r--  1 feng feng 1.8M Mar 16 16:33 root.job_stringtie_count.count
-	-rw-rw-r--  1 feng feng  17M Mar 16 16:33 root.job_stringtie_count.cmd
-	drwxrwxr-x 37 feng feng 4.0K Mar 16 16:33 _spiper
+	get_all_files: (test_run)
+		[File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.get_fasta.fasta'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.get_fasta.cmd'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.get_genepred.genepred'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.get_genepred.gtf'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.get_genepred.cmd'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.hisat2/wuhan-ncov19.job_hisat2_index.log'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.hisat2/wuhan-ncov19.job_hisat2_index.cmd'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_trimmomatic.fastq1'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_trimmomatic.fastq2'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_trimmomatic.log'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_trimmomatic.cmd'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_hisat2_align.bam'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_hisat2_align.log'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_hisat2_align.cmd'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_picard_dedup.bam'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_picard_dedup.log'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_picard_dedup.cmd_log'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_bam2bw-picard_dedup_bam.bw'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_bam2bw-picard_dedup_bam.cmd'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_stringtie_count.count'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_stringtie_count.cmd')
+		 ]
+
+	get_all_deps:  (test_run) (spiper>=0.1.1)
+		[Depend('bin://curl'),
+		 Depend('bin://gzip'),
+		 Depend('docker://quay.io/biocontainers/hisat2:2.1.0--py36hc9558a2_4'),
+		 Depend('docker://quay.io/biocontainers/picard:2.21.9--0'),
+		 Depend('docker://quay.io/biocontainers/samtools:1.10--h9402c20_2'),
+		 Depend('docker://quay.io/biocontainers/stringtie:2.1.1--hc900ff6_0'),
+		 Depend('docker://quay.io/biocontainers/trimmomatic:0.35--6'),
+		 Depend('docker://quay.io/biocontainers/ucsc-genepredtogtf:377--h35c10e6_2'),
+		 Depend('docker://quay.io/wtsicgp/cgpbigwig:1.1.0'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/test_data/test_R1_.fastq'),
+		 File('/home/user/repos/pipeline-rnaseq-hisat2-stringtie/test_data/test_R2_.fastq'),
+		 HttpResponseContentHeader({"method"="head","url"="https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/bigZips/chromFa.tar.gz"}),
+		 HttpResponseContentHeader({"method"="head","url"="https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/database/ncbiGene.txt.gz"})]	
 
 '''
 
@@ -65,12 +107,13 @@ from spiper.runner import list_flatten_strict, job_from_func
 from spiper.shell import LoggedSingularityCommandList, LoggedShellCommand, LoggedSingularityCommand
 from path import Path
 import spiper
-assert spiper.VERSION >= '0.1.0',spiper.VERSION
+assert spiper.VERSION >= '0.1.1',spiper.VERSION
 
 from spiper.types import Concat
 from spiper.types import Flow
 from spiper.types import resolve_spiper
 from spiper.types import LoggedShellCommand
+from spiper.types import CopyFile
 
 
 def job_trimmomatic(
@@ -285,11 +328,10 @@ def job_bam2bw(self,prefix,
 	CMD = ['bam2bw','-i',bam_file, '-o', self.output.bw]
 	LoggedSingularityCommand(self.prefix_named, CMD, _image, self.output.cmd,extra_files = [bam_file+'.bai'])
 
-
 @Flow
 def workflow(self, prefix, 
 
-	hisat2_cache_prefix = File,
+	hisat2_cache_prefix = str,
 	genome_fasta = File, 
 	genome_gtf_file = File,
 
@@ -299,6 +341,8 @@ def workflow(self, prefix,
 	THREADS_ = int,
 	_output=[]
 	):
+	# print
+	# assert 0,repr((hisat2_cache_prefix))
 	# self.data = {}
 	# self.data['index'] = 
 	curr = self.runner(
@@ -345,26 +389,32 @@ def workflow(self, prefix,
 		THREADS_,
 		)
 
+	assert File(__file__).isfile(),'Cannot find source file using __file__:%r'%__file__
+	self.runner(
+		CopyFile, 
+		self.prefix_named+'.source.py',
+		__file__)
+
 	return self
 
 
-from spiper.types import Caller, DirtyKey, rgetattr
-import shutil
-def LinkEvent(self, 
-	prefix, input=File, 
-	_single_file = 1, ### A single file node only tracks the file at self.prefix
-	_output=[], 
-	):
-	'''
-	#### One can also use directly move the output file, but this would break the upstream integrity 
-	#### and is hence not recommended
-	'''
-	output = prefix
-	haso = os.path.exists(output)
-	hasi = os.path.exists(input)
+# from spiper.types import Caller, DirtyKey, rgetattr
+# import shutil
+# def LinkEvent(self, 
+# 	prefix, input=File, 
+# 	_single_file = 1, ### A single file node only tracks the file at self.prefix
+# 	_output=[], 
+# 	):
+# 	'''
+# 	#### One can also use directly move the output file, but this would break the upstream integrity 
+# 	#### and is hence not recommended
+# 	'''
+# 	output = prefix
+# 	haso = os.path.exists(output)
+# 	hasi = os.path.exists(input)
 
-	shutil.copy2(input, self.prefix+'.temp')
-	shutil.move(self.prefix +'.temp', self.prefix)
+# 	shutil.copy2(input, self.prefix+'.temp')
+# 	shutil.move(self.prefix +'.temp', self.prefix)
 
 def backup(self,prefix):
 	key = 'subflow..random_seq..output..seq'
@@ -372,7 +422,7 @@ def backup(self,prefix):
 	self.runner(LinkEvent, prefix+'.' + key, resolve_spiper(flow,key))
 
 def get_fasta(self, prefix,
-	_depends = [Depend('curl'),Depend('gzip')],
+	_depends = [Depend('bin://curl'),Depend('bin://gzip')],
 	_resp = spiper.types.HttpResponseContentHeader('https://hgdownload.soe.ucsc.edu/goldenPath/currentGenomes/Wuhan_seafood_market_pneumonia_virus/bigZips/chromFa.tar.gz'),
 	_output = ['fasta','cmd']):
 	with (self.prefix_named/'_temp').makedirs_p() as d:

@@ -7,8 +7,8 @@ assert sys.version_info >= (3,5),('Requires python>=3.5, found python==%s'%('.'.
 
 config = dict(
 	name='pipeline_rnaseq_hisat2_stringtie',
-	version = '0.0.2',
-	 packages=['.'],
+	version = '0.0.3',
+	packages=['.'],
 )
 
 dict(
