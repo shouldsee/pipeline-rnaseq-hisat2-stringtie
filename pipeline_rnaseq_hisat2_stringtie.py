@@ -65,7 +65,7 @@ from spiper.runner import list_flatten_strict, job_from_func
 from spiper.shell import LoggedSingularityCommandList, LoggedShellCommand, LoggedSingularityCommand
 from path import Path
 import spiper
-assert spiper.VERSION >= '0.0.8',spiper.VERSION
+assert spiper.VERSION >= '0.1.0',spiper.VERSION
 
 from spiper.types import Concat
 from spiper.types import Flow
@@ -281,7 +281,7 @@ def job_bam2bw(self,prefix,
 	_image = Depend('docker://quay.io/wtsicgp/cgpbigwig:1.1.0'),
 	_output=['bw','cmd'],
 	):
-	assert (bam_file+'.bai').exists()
+	assert (bam_file+'.bai').isfile()
 	CMD = ['bam2bw','-i',bam_file, '-o', self.output.bw]
 	LoggedSingularityCommand(self.prefix_named, CMD, _image, self.output.cmd,extra_files = [bam_file+'.bai'])
 
