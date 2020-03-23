@@ -1,3 +1,7 @@
+# 0.0.4
+- Move `job_bam2bw` to `job_bam2bw_cpm`. Now performs CPM normalisation on bigwig file.
+- added `job_bam_qc` to compute qc for a bam file.
+
 # 0.0.3
 - workflow() now copy source 
 - require "spiper>=0.1.1"
