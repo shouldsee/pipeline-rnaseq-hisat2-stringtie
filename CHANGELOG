@@ -1,3 +1,6 @@
+# 0.0.5
+- fixed usage of multi-command singularity exec statement in `job_bam_qc` 
+
 # 0.0.4
 - Move `job_bam2bw` to `job_bam2bw_cpm`. Now performs CPM normalisation on bigwig file.
 - added `job_bam_qc` to compute qc for a bam file.

@@ -2,7 +2,7 @@ __doc__ = '''
 Comment: This is the default pair-end RNA-Seq pipeline with hisat2 during Feng's time at SLCU.
 Author: Feng Geng
 Last Modified: 2020/03/18
-Version: 0.0.4
+Version: 0.0.5
 Example Usage: 
 
 	BIN=python3
@@ -374,9 +374,11 @@ def job_bam_qc(self,prefix,
 	DATA_DICT = collections.OrderedDict()
 	# DATA_DICT['counts'] = collections.OrderedDict()
 	cmd_runned , stdout = (LoggedSingularityCommand(self.prefix_named, [
+		'bash -euc "{ ',
 		'samtools view -c -f 0x4 ',bam_file,';',  ## UNMAPPED
 		'samtools view -c -F0x10 -F0x100 -F0x4 ',bam_file,';', ### FWD_UNIQ_MAPPED
 		'samtools view -c -f0x10 -F0x100 -F0x4 ',bam_file,';', ### REV_UNIQ_MAPPED
+		'}"',
 		], _image, self.output.cmd, extra_files = [bam_file+'.bai']))
 	sp = stdout.splitlines()
 	assert len(sp)==3;
