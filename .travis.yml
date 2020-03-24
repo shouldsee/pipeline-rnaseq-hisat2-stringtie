@@ -17,6 +17,8 @@ cache:
 before_install:
   - sudo apt-get update
   - sudo apt install -y graphviz
+  - echo $PATH
+  - mkdir -p $HOME/.local/bin
   - curl -sL https://raw.githubusercontent.com/shouldsee/spiper/master/scripts/install_singular.sh | bash -s /opt/singularity
   - ln -sf /opt/singularity/bin/singularity $HOME/.local/bin
   - singularity version
