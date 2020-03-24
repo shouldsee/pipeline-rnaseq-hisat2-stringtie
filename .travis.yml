@@ -10,7 +10,7 @@ python:
   
 cache:
   directories: 
-    - $HOME/.pip
+    # - $HOME/.pip
     - $HOME/.singularity
     - /opt/singularity
     # - $HOME/virtualenv ### too big
