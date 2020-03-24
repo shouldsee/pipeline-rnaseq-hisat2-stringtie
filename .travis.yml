@@ -19,7 +19,7 @@ before_install:
   - sudo apt install -y graphviz
   - curl -sL https://raw.githubusercontent.com/shouldsee/spiper/master/scripts/install_singular.sh | bash -s /opt/singularity
   - ln -sf /opt/singularity/bin/singularity $HOME/.local/bin
-  - singularity --version
+  - singularity version
   - pip install spiper@https://github.com/shouldsee/spiper/tarball/0.1.3 --upgrade
 install:
   - echo pass
