@@ -113,7 +113,7 @@ from spiper.types import Concat
 from spiper.types import Flow
 from spiper.types import resolve_spiper
 from spiper.types import LoggedShellCommand
-from spiper.types import CopyFile
+from spiper.types import CopyFile,LinkFile
 from spiper.types import RPO
 
 
@@ -324,9 +324,9 @@ def job_bam2bw_cpm(self,prefix,
 	bam_file= File,
 	bam_qc_file = File,
 	THREADS_ = int,
-# 	_image = Depend('docker://quay.io/shouldsee/cgpbigwig:b024993'),
-	_image = Depend('docker://quay.io/wtsicgp/cgpbigwig:1.2.0'),
-	_output=['cpm_bw','cmd'],
+	_image = Depend('docker://quay.io/shouldsee/cgpbigwig:b024993'),
+	# _image = Depend('docker://quay.io/wtsicgp/cgpbigwig:1.2.0'),
+	_output=['bw','cmd'],
 	):
 	'''
 	#### set scale_log10==0. to disable rescaling
@@ -336,7 +336,7 @@ def job_bam2bw_cpm(self,prefix,
 	scale_log10 = math.log10(1.E6 / max(1,
 			json.loads(open(bam_qc_file,'r').read())['counts.uniq_mapped.sum']
 		))
-	CMD = ['bam2bw','-S',str(scale_log10),'-i',bam_file, '-o', self.output.cpm_bw]
+	CMD = ['bam2bw','-S',str(scale_log10),'-i',bam_file, '-o', self.output.bw]
 	LoggedSingularityCommand(self.prefix_named, CMD, _image, self.output.cmd,extra_files = [bam_file+'.bai'])
 
 
@@ -444,13 +444,19 @@ def workflow(self, prefix,
 		self.subflow['job_picard_dedup'].output.bam,
 		THREADS_,
 		)
-	self.config_runner(tag='picard_dedup_bam')(
+	last = self.config_runner(tag='picard_dedup_bam')(
 		job_bam2bw_cpm,
 		prefix,
 		self.subflow['job_picard_dedup'].output.bam,
 		self.subflow['job_bam_qc-picard_dedup_bam'].output.data_json,
 		1,
 		)
+	self.runner(LinkFile, 
+		# last.output.output.bw[:-len('.bw')] + '.cpm_bw',
+		# last.output.bw,
+		# )
+		self.subflow['job_bam2bw_cpm-picard_dedup_bam'].output.bw[:-len('.bw')] + '.cpm_bw',
+		self.subflow['job_bam2bw_cpm-picard_dedup_bam'].output.bw)
 
 	self.runner(
 		job_stringtie_count,
@@ -468,7 +474,10 @@ def workflow(self, prefix,
 
 	return self
 
-
+# /usr/local/bin/picard
+# singularity shell --contain --writable --workdir /home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_picard_dedup.singularity_temp \
+#  --bind /home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_hisat2_align.bam:/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_hisat2_align.bam:rw,/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_picard_dedup.bam:/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_picard_dedup.bam:rw,/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_picard_dedup.log:/home/user/repos/pipeline-rnaseq-hisat2-stringtie/_temp_build/root.sample1.job_picard_dedup.log:rw \
+#  docker://quay.io/biocontainers/picard:2.21.9--0
 # from spiper.types import Caller, DirtyKey, rgetattr
 # import shutil
 # def LinkEvent(self, 
