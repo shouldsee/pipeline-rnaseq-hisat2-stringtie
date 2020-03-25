@@ -324,8 +324,8 @@ def job_bam2bw_cpm(self,prefix,
 	bam_file= File,
 	bam_qc_file = File,
 	THREADS_ = int,
-	_image = Depend('docker://quay.io/shouldsee/cgpbigwig:b024993'),
-	# _image = Depend('docker://quay.io/wtsicgp/cgpbigwig:1.1.0'),
+# 	_image = Depend('docker://quay.io/shouldsee/cgpbigwig:b024993'),
+	_image = Depend('docker://quay.io/wtsicgp/cgpbigwig:1.2.0'),
 	_output=['cpm_bw','cmd'],
 	):
 	'''
