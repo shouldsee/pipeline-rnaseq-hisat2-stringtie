@@ -1,3 +1,7 @@
+# 0.0.6
+- rename output.bw -> output.cpm_bw
+- use cgpbigwig:1.2.0
+
 # 0.0.5
 - fixed usage of multi-command singularity exec statement in `job_bam_qc` 
 

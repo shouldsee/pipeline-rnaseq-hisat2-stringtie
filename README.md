@@ -6,7 +6,7 @@
 Comment: This is the default pair-end RNA-Seq pipeline with hisat2 during Feng's time at SLCU.
 Author: Feng Geng
 Last Modified: 2020/03/16
-version: 0.0.5
+version: 0.0.6
 Example Usage: 
 
 	BIN=python3
