@@ -326,7 +326,7 @@ def job_bam2bw_cpm(self,prefix,
 	THREADS_ = int,
 	_image = Depend('docker://quay.io/shouldsee/cgpbigwig:b024993'),
 	# _image = Depend('docker://quay.io/wtsicgp/cgpbigwig:1.1.0'),
-	_output=['bw','cmd'],
+	_output=['cpm_bw','cmd'],
 	):
 	'''
 	#### set scale_log10==0. to disable rescaling
@@ -336,7 +336,7 @@ def job_bam2bw_cpm(self,prefix,
 	scale_log10 = math.log10(1.E6 / max(1,
 			json.loads(open(bam_qc_file,'r').read())['counts.uniq_mapped.sum']
 		))
-	CMD = ['bam2bw','-S',str(scale_log10),'-i',bam_file, '-o', self.output.bw]
+	CMD = ['bam2bw','-S',str(scale_log10),'-i',bam_file, '-o', self.output.cpm_bw]
 	LoggedSingularityCommand(self.prefix_named, CMD, _image, self.output.cmd,extra_files = [bam_file+'.bai'])
 
 
